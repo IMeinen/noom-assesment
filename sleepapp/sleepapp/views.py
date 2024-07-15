@@ -73,7 +73,7 @@ def monthly_logs( request ):
     except ValueError as e:
         return Response({"error": str(e)}, status=400)
 
-    
+    #Search all sleep logs for the user in the last 30 days
     sleep_logs = SleepLog.objects.filter(
         Q(bed_time_start__gte=first_day_of_month) & Q(bed_time_end__lte=last_day_of_month),
         user_id=request.user.id
@@ -86,26 +86,46 @@ def monthly_logs( request ):
 
     for log in sleep_logs:
         
+        # Calculate day difference, 
+        # this logic exists because the post endpoint 
+        # allows to have more than 24hours of sleep
+        day_difference = (log.bed_time_end.date() - log.bed_time_start.date()).days
+
+        # Calculate start and end minutes
         start_minutes = log.bed_time_start.hour * 60 + log.bed_time_start.minute
         end_minutes = log.bed_time_end.hour * 60 + log.bed_time_end.minute
-        if log.bed_time_end < log.bed_time_start:
-            end_minutes += 24 * 60
+
+        # Adjust end_minutes based on day_difference
+        if day_difference > 0:
+            end_minutes += day_difference * 24 * 60
 
         bed_time_start_list.append(start_minutes)
         bed_time_end_list.append(end_minutes)
         
+        # Calculate the duration of sleep based on start and end times
+        # If the end time is after the start time (same day), calculate the difference directly
+        # If the end time is before the start time (crossed into the next day), add a day to the end time before calculating the difference
         slept_time = (log.bed_time_end - log.bed_time_start) if log.bed_time_end >= log.bed_time_start else (timedelta(days=1) + log.bed_time_end - log.bed_time_start)
+
+        # Convert the slept time duration into hours
         slept_time_hours = slept_time.total_seconds() / 3600
+
+        # Append the calculated hours of sleep to a list for further use or analysis
         slept_time_list.append(slept_time_hours)
         
         if log.feeling:
             feeling_count[log.feeling] += 1
 
+    # Calculate the average start time in minutes from the bed_time_start_list, default to 0 if the list is empty
     average_bed_time_start_minutes = np.mean(bed_time_start_list) if bed_time_start_list else 0
+    # Calculate the average end time in minutes from the bed_time_end_list, default to 0 if the list is empty
     average_bed_time_end_minutes = np.mean(bed_time_end_list) if bed_time_end_list else 0
 
+    # Convert the average start time from minutes to a 12-hour format string
     average_bed_time_start = minutes_to_12h_format(average_bed_time_start_minutes)
+    # Convert the average end time from minutes to a 12-hour format string
     average_bed_time_end = minutes_to_12h_format(average_bed_time_end_minutes)
+    # Calculate the average slept time in hours from the slept_time_list, default to 0 if the list is empty
     average_slept_time = np.mean(slept_time_list) if slept_time_list else 0
 
     response_data = {
