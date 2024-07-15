@@ -1,9 +1,29 @@
-import { Box, Text, Button } from "@chakra-ui/react";
+import { Box, Text, Button, CircularProgress } from "@chakra-ui/react";
 import { useDispatch } from "react-redux";
+import { useQuery } from "react-query";
+import { format } from "date-fns";
+import { getMonthlySleepLogAverages } from "api/sleepInfoApi";
+import {
+  convertDecimalHoursToHoursAndMinutes,
+  formatDateToMonthAndOrdinal
+} from "utils/dateUtils";
+import { FeelingEnum } from "types/sleepInfoCard.types";
 import { changeState } from "../../app/store/sleepInfoCardSlice";
+import { FeelingCounter } from "./feelingCounter";
 
 function SleepAverageStateContainer() {
   const dispatch = useDispatch();
+
+  const { data, isLoading } = useQuery(
+    ["getMonthlySleepLogAverages", format(new Date(), "yyyy-MM-dd")],
+    () => getMonthlySleepLogAverages(format(new Date(), "yyyy-MM-dd"))
+  );
+
+
+
+  if (isLoading) {
+    return <CircularProgress value={80} />;
+  }
 
   return (
     <Box overflow="hidden" p="6" maxW="sm" textAlign="center">
@@ -19,46 +39,41 @@ function SleepAverageStateContainer() {
           fontSize="12px"
           p="1"
           borderRadius="0"
-          onClick={() => dispatch(changeState(2))}
+          onClick={() => dispatch(changeState(1))}
         >
           BACK
         </Button>
       </Box>
       <Text mt="1" fontWeight="semibold" as="h4" lineHeight="tight">
-        October, 14th to November, 13th
+        {`${formatDateToMonthAndOrdinal(
+          data?.first_day_of_month || ""
+        )} to ${formatDateToMonthAndOrdinal(data?.last_day_of_month || "")}`}
       </Text>
 
       <Text fontSize="2xl" fontWeight="bold">
-        7 h 14 min
+        {`${convertDecimalHoursToHoursAndMinutes(
+          data?.average_slept_time || 0
+        )}`}
       </Text>
       <Text fontSize="md" color="gray.500">
-        11:51 pm - 7:05 am
+        {`${data?.average_bed_time_start || ""} - ${
+          data?.average_bed_time_end || ""
+        }`}
       </Text>
       <Box mt="4" display="flex" justifyContent="space-around">
-        <Box textAlign="center">
-          <Text color="red.500" fontWeight="bold">
-            Bad
-          </Text>
-          <Text fontSize="xl" fontWeight="bold" color="red.500">
-            3
-          </Text>
-        </Box>
-        <Box textAlign="center">
-          <Text color="black" fontWeight="bold">
-            OK
-          </Text>
-          <Text fontSize="xl" fontWeight="bold" color="black">
-            14
-          </Text>
-        </Box>
-        <Box textAlign="center">
-          <Text color="green.500" fontWeight="bold">
-            Good
-          </Text>
-          <Text fontSize="xl" fontWeight="bold" color="green.500">
-            9
-          </Text>
-        </Box>
+        {Object.values(FeelingEnum).map((feeling: string, index: number) => (
+          <FeelingCounter
+            key={feeling}
+            feeling={index + 1}
+            count={
+              data
+                ? data.feeling_count[
+                    `${index + 1}` as keyof typeof data.feeling_count
+                  ]
+                : 0
+            }
+          />
+        ))}
       </Box>
     </Box>
   );
