@@ -1,12 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { SleepInfoCardStateEnum } from "../../enums/sleepInfoCard.enums";
+import { SleepData } from "types/sleepInfoCard.types";
 
 interface SleepInfoCardState {
-  currentState: SleepInfoCardStateEnum;
+  currentState: number;
+  currentDaySleepData: SleepData | null;
 }
 
 const initialState: SleepInfoCardState = {
-  currentState: 1
+  currentState: 1,
+  currentDaySleepData: null
 };
 
 const sleepInfoCardSlice = createSlice({
@@ -14,11 +16,15 @@ const sleepInfoCardSlice = createSlice({
   initialState,
   reducers: {
     changeState: (state, action) => {
-      state.currentState = action.payload.currentState;
+      state.currentState = action.payload;
+    },
+    changeCurrentDaySleepData: (state, action) => {
+      state.currentDaySleepData = action.payload;
     }
   }
 });
 
-export const { changeState } = sleepInfoCardSlice.actions;
+export const { changeState, changeCurrentDaySleepData } =
+  sleepInfoCardSlice.actions;
 
 export default sleepInfoCardSlice.reducer;

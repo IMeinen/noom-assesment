@@ -4,7 +4,9 @@ import { Link as UILink, Box, Heading } from "@chakra-ui/react";
 export function NotFoundPage() {
   return (
     <Box>
-      <Heading size="xl">404 | Not Found</Heading>
+      <Heading size="xl" test-id="not-found-page">
+        404 | Not Found
+      </Heading>
       <br />
       <UILink as={Link} to="/">
         Back To Home
